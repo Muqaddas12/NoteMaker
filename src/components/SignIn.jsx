@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { Link, useNavigate } from "react-router-dom";
 import topLogo from "../assets/TopLogo.png";
 import rightColImage from "../assets/right-colunm.png";
 
 const SignIn = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     email: "",
     otp: "",
@@ -34,6 +36,9 @@ const SignIn = () => {
       return;
     }
     alert("Signed in successfully!");
+    localStorage.setItem("isLoggedIn", true);
+    localStorage.setItem("userEmail", form.email); // Optional: Store email
+    navigate("/dashboard");
   };
 
   const handleResendOtp = () => {
@@ -48,12 +53,11 @@ const SignIn = () => {
     <div className="flex flex-col md:flex-row h-screen bg-white">
       {/* Left Column */}
       <div className="w-full md:w-1/2 flex flex-col relative">
-    
         <div className="md:absolute top-6 left-6 flex justify-center md:justify-start w-full md:w-auto mt-6 md:mt-0">
           <img src={topLogo} alt="HD Logo" className="w-40 h-5" />
         </div>
 
-        {/* Form  */}
+        {/* Form */}
         <div className="flex flex-col justify-center items-center h-full px-6 md:px-16">
           <div className="w-full max-w-md space-y-6 mt-10 md:mt-0">
             <h2 className="text-2xl font-bold text-left md:text-left">Sign in</h2>
@@ -96,8 +100,7 @@ const SignIn = () => {
               </fieldset>
 
               {/* Checkbox + Resend */}
-              <div className="flex flex-col  md:justify-between gap-2 text-sm text-gray-600">
-                
+              <div className="flex flex-col md:justify-between gap-2 text-sm text-gray-600">
                 <button
                   onClick={handleResendOtp}
                   className="text-blue-600 hover:underline w-fit"
@@ -125,16 +128,16 @@ const SignIn = () => {
               Sign in
             </button>
 
-            {/* Footer */}
+            {/* Footer Link */}
             <p className="text-center text-sm text-gray-600 pt-2">
               Need an account?
-              <a href="/" className="text-blue-600 hover:underline ml-1">Create one</a>
+              <Link to="/" className="text-blue-600 hover:underline ml-1">Create one</Link>
             </p>
           </div>
         </div>
       </div>
 
-      {/* Right Column Image */}
+      {/* Right Image */}
       <div className="hidden md:block w-3/4 p-1">
         <img
           src={rightColImage}

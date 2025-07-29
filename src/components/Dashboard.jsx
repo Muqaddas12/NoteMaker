@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import topLogo from '../assets/dashboard-logo.png';
+import topLogo from "../assets/dashboard-logo.png";
 
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  const user = {
-    name: "Jonas Kahnwald",
-    email: "jonas@example.com", 
+  // Get user info from localStorage
+  const user = JSON.parse(localStorage.getItem("user")) || {
+    name: "Guest",
+    email: "guest@example.com",
   };
 
   const [notes, setNotes] = useState([]);
@@ -17,13 +18,11 @@ const Dashboard = () => {
 
   const storageKey = `notes_${user.email}`;
 
-  // Load notes on mount
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
     setNotes(stored);
   }, []);
 
-  // Save notes on change
   useEffect(() => {
     localStorage.setItem(storageKey, JSON.stringify(notes));
   }, [notes]);
@@ -56,6 +55,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("user");
     navigate("/signin");
   };
 
@@ -99,7 +99,9 @@ const Dashboard = () => {
             <input
               type="text"
               value={noteInput.title}
-              onChange={(e) => setNoteInput({ ...noteInput, title: e.target.value })}
+              onChange={(e) =>
+                setNoteInput({ ...noteInput, title: e.target.value })
+              }
               placeholder="Note Title"
               className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none"
             />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { Link } from "react-router-dom";
 import rightColImage from "../assets/right-colunm.png";
 import topLogo from "../assets/TopLogo.png";
 
@@ -53,19 +54,16 @@ const SignUp = () => {
     <div className="flex flex-col md:flex-row h-screen">
       {/* Left Column */}
       <div className="w-full md:w-1/2 flex flex-col relative bg-white">
-        {/* Logo top-left */}
         <div className="absolute top-6 left-6">
           <img src={topLogo} alt="HD Logo" className="w-40 h-5" />
         </div>
 
-        {/* Form  */}
         <div className="flex flex-col justify-center items-center h-full px-6 md:px-16">
           <div className="w-full max-w-md space-y-6">
             <h2 className="text-2xl font-bold text-left">Sign up</h2>
             <p className="text-gray-500 text-sm">Sign up to enjoy the feature of HD</p>
 
             <div className="space-y-4">
-              {/* Name */}
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
                 <legend className="text-xs text-gray-500 px-1">Your Name</legend>
                 <input
@@ -78,7 +76,6 @@ const SignUp = () => {
                 />
               </fieldset>
 
-              {/* DOB */}
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
                 <legend className="text-xs text-gray-500 px-1">Date of Birth</legend>
                 <div className="relative flex items-center">
@@ -93,7 +90,6 @@ const SignUp = () => {
                 </div>
               </fieldset>
 
-              {/* Email */}
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
                 <legend className="text-xs text-gray-500 px-1">Email</legend>
                 <input
@@ -106,7 +102,6 @@ const SignUp = () => {
                 />
               </fieldset>
 
-              {/* OTP */}
               {showOtpField && (
                 <fieldset className="border border-blue-500 rounded-md px-3 pt-1 relative">
                   <legend className="text-xs text-blue-500 px-1">OTP</legend>
@@ -131,7 +126,6 @@ const SignUp = () => {
               )}
             </div>
 
-            {/* Buttons */}
             {!showOtpField ? (
               <button
                 onClick={handleGetOtp}
@@ -148,10 +142,11 @@ const SignUp = () => {
               </button>
             )}
 
-            {/* Footer */}
             <p className="text-center text-sm text-gray-600 pt-2">
               Already have an account?
-              <a href="/signin" className="text-blue-600 hover:underline ml-1">Sign in</a>
+              <Link to="/signin" className="text-blue-600 hover:underline ml-1">
+                Sign in
+              </Link>
             </p>
           </div>
         </div>
@@ -159,13 +154,12 @@ const SignUp = () => {
 
       {/* Right Image */}
       <div className="hidden md:block w-3/4 p-1">
-  <img
-    src={rightColImage}
-    alt="Right Image"
-    className="w-full h-full object-cover "
-  />
-</div>
-
+        <img
+          src={rightColImage}
+          alt="Right Image"
+          className="w-full h-full object-cover"
+        />
+      </div>
     </div>
   );
 };
