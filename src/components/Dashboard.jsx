@@ -5,27 +5,41 @@ import topLogo from "../assets/dashboard-logo.png";
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  // Get user info from localStorage
-  const user = JSON.parse(localStorage.getItem("user")) || {
-    name: "Guest",
-    email: "guest@example.com",
-  };
-
+  const [user, setUser] = useState(null);         // ⏳ user is null initially
   const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);   // ✅ loading state
   const [creating, setCreating] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [noteInput, setNoteInput] = useState({ title: "", content: "" });
 
-  const storageKey = `notes_${user.email}`;
+  useEffect(() => {
+    const storedUser =
+      JSON.parse(localStorage.getItem("user")) ||
+      JSON.parse(sessionStorage.getItem("user"));
+
+    if (!storedUser) {
+      navigate("/signin");
+    } else {
+      setUser(storedUser);
+    }
+
+    setLoading(false); // ✅ stop loading after check
+  }, [navigate]);
+
+  const storageKey = `notes_${user?.email}`;
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
-    setNotes(stored);
-  }, []);
+    if (user) {
+      const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
+      setNotes(stored);
+    }
+  }, [user, storageKey]);
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(notes));
-  }, [notes]);
+    if (user) {
+      localStorage.setItem(storageKey, JSON.stringify(notes));
+    }
+  }, [notes, storageKey, user]);
 
   const handleAddOrEdit = () => {
     if (!noteInput.title.trim() || !noteInput.content.trim()) return;
@@ -56,8 +70,14 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("token");
     navigate("/signin");
   };
+
+  // ⏳ Don't render if still checking auth
+  if (loading || !user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col px-4 py-6 md:px-10 lg:px-24">

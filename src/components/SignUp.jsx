@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import rightColImage from "../assets/right-colunm.png";
 import topLogo from "../assets/TopLogo.png";
 
+const API_BASE = "https://notemaker-backend-v3fg.onrender.com/api";
+
 const SignUp = () => {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     dob: "",
@@ -16,6 +21,7 @@ const SignUp = () => {
   const [errors, setErrors] = useState({});
   const [showOtpField, setShowOtpField] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -32,27 +38,61 @@ const SignUp = () => {
     return newErrors;
   };
 
-  const handleGetOtp = () => {
+  const handleGetOtp = async () => {
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    alert("OTP sent to " + form.email);
-    setShowOtpField(true);
+
+    try {
+      setLoading(true);
+      const res = await axios.post(`${API_BASE}/auth/signup`, {
+        name: form.name,
+        dob: form.dob,
+        email: form.email,
+      });
+
+      alert(res.data.message);
+      setShowOtpField(true);
+    } catch (err) {
+      console.error(err);
+      alert(
+        err.response?.data?.error || "Something went wrong. Try again later."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     if (!form.otp.trim()) {
       setErrors({ ...errors, otp: "OTP is required." });
       return;
     }
-    alert("Signed up successfully!");
+
+    try {
+      setLoading(true);
+      const res = await axios.post(`${API_BASE}/auth/verify-otp`, {
+        email: form.email,
+        otp: form.otp,
+      });
+
+      alert(res.data.message);
+      localStorage.setItem("token", res.data.token);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      alert(
+        err.response?.data?.error || "OTP verification failed. Try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="flex flex-col md:flex-row h-screen">
-      {/* Left Column */}
       <div className="w-full md:w-1/2 flex flex-col relative bg-white">
         <div className="absolute top-6 left-6">
           <img src={topLogo} alt="HD Logo" className="w-40 h-5" />
@@ -129,16 +169,18 @@ const SignUp = () => {
             {!showOtpField ? (
               <button
                 onClick={handleGetOtp}
+                disabled={loading}
                 className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
               >
-                Get OTP
+                {loading ? "Sending OTP..." : "Get OTP"}
               </button>
             ) : (
               <button
                 onClick={handleSignUp}
+                disabled={loading}
                 className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
               >
-                Sign up
+                {loading ? "Verifying..." : "Sign up"}
               </button>
             )}
 
@@ -152,7 +194,6 @@ const SignUp = () => {
         </div>
       </div>
 
-      {/* Right Image */}
       <div className="hidden md:block w-3/4 p-1">
         <img
           src={rightColImage}
