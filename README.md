@@ -84,11 +84,7 @@ Frontend runs locally at: `http://localhost:5173`
 
 ---
 
-## 📁 Sample `.env` (when backend is ready)
 
-```
-VITE_API_URL=http://localhost:5000/api
-```
 
 ---
 
