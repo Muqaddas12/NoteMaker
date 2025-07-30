@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -9,79 +9,102 @@ const API_BASE = "https://notemaker-backend-v3fg.onrender.com/api";
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
-    email: "",
-    otp: "",
-    keepLoggedIn: false,
-  });
-
+  const [form, setForm] = useState({ email: "", otp: "" });
   const [errors, setErrors] = useState({});
   const [showOtp, setShowOtp] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+ useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/check`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (data.loggedIn && data.user) {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+    }
+  };
+  checkAuth();
+}, [navigate]);
+
+
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
-    setErrors({ ...errors, [name]: "" });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validateEmail = () => {
+    const errs = {};
+    if (!form.email) errs.email = "Email is required.";
+    else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = "Enter a valid email.";
+    return errs;
   };
 
   const validateForm = () => {
-    const newErrors = {};
-    if (!form.email) newErrors.email = "Email is required.";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Enter a valid email.";
-    if (!form.otp.trim()) newErrors.otp = "OTP is required.";
-    return newErrors;
+    const errs = validateEmail();
+    if (!form.otp) errs.otp = "OTP is required.";
+    return errs;
   };
 
-  const handleSignIn = async () => {
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+  const sendOtp = async () => {
+    const errs = validateEmail();
+    if (Object.keys(errs).length > 0) return setErrors(errs);
 
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/auth/signin`, {
-        email: form.email,
-        otp: form.otp,
-      });
-
-      const { token, user } = res.data;
-
-      if (form.keepLoggedIn) {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
-      } else {
-        sessionStorage.setItem("token", token);
-        sessionStorage.setItem("user", JSON.stringify(user));
-      }
-
-      navigate("/dashboard");
+      const res = await axios.post(
+        `${API_BASE}/auth/send-otp`,
+        {
+          name: "Guest User",
+          dob: "2000-01-01",
+          email: form.email,
+        },
+        { withCredentials: true }
+      );
+      alert(res.data.message || "OTP sent!");
+      setOtpSent(true);
+      setResendCooldown(60);
     } catch (err) {
-      alert(err.response?.data?.error || "Login failed");
+      alert(err.response?.data?.error || "Failed to send OTP.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    if (!form.email) {
-      setErrors({ email: "Please enter email first." });
-      return;
-    }
+  const handleSignIn = async () => {
+    const errs = validateForm();
+    if (Object.keys(errs).length > 0) return setErrors(errs);
 
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/auth/signup`, {
-        name: "Temp",
-        dob: "2000-01-01",
-        email: form.email,
-      });
-
-      alert(res.data.message || "OTP resent to your email");
+      const res = await axios.post(
+        `${API_BASE}/auth/signin`,
+        {
+          email: form.email,
+          otp: form.otp,
+        },
+        { withCredentials: true }
+      );
+      alert(res.data.message || "Signed in successfully!");
+      navigate("/dashboard");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to send OTP");
+      alert(err.response?.data?.error || "Sign-in failed.");
     } finally {
       setLoading(false);
     }
@@ -92,15 +115,16 @@ const SignIn = () => {
       {/* Left Column */}
       <div className="w-full md:w-1/2 flex flex-col relative">
         <div className="md:absolute top-6 left-6 flex justify-center md:justify-start w-full md:w-auto mt-6 md:mt-0">
-          <img src={topLogo} alt="HD Logo" className="w-40 h-5" />
+           <img src={topLogo} alt="Logo" className="w-90 h-8" />
         </div>
 
         <div className="flex flex-col justify-center items-center h-full px-6 md:px-16">
           <div className="w-full max-w-md space-y-6 mt-10 md:mt-0">
-            <h2 className="text-2xl font-bold text-left">Sign in</h2>
-            <p className="text-gray-500 text-sm">Welcome back to HD</p>
+            <h2 className="text-2xl font-bold">Sign in</h2>
+            <p className="text-sm text-gray-500">Welcome back to HD</p>
 
             <div className="space-y-4">
+              {/* Email */}
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
                 <legend className="text-xs text-gray-500 px-1">Email</legend>
                 <input
@@ -108,66 +132,72 @@ const SignIn = () => {
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="jonas_kahnwald@gmail.com"
+                  placeholder="you@example.com"
                   className="w-full py-2 text-sm focus:outline-none"
                 />
                 {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
               </fieldset>
 
-              <fieldset className="border border-blue-500 rounded-md px-3 pt-1 relative">
-                <legend className="text-xs text-blue-500 px-1">OTP</legend>
-                <div className="flex items-center">
-                  <input
-                    type={showOtp ? "text" : "password"}
-                    name="otp"
-                    value={form.otp}
-                    onChange={handleChange}
-                    placeholder="Enter OTP"
-                    className="w-full py-2 text-sm focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOtp(!showOtp)}
-                    className="absolute right-2 text-lg text-gray-500"
-                  >
-                    {showOtp ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
-                  </button>
-                </div>
-                {errors.otp && <p className="text-red-500 text-xs">{errors.otp}</p>}
-              </fieldset>
-
-              <div className="flex flex-col md:justify-between gap-2 text-sm text-gray-600">
-                <button
-                  onClick={handleResendOtp}
-                  className="text-blue-600 hover:underline w-fit"
-                  disabled={loading}
-                >
-                  {loading ? "Sending OTP..." : "Resend OTP"}
-                </button>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="keepLoggedIn"
-                    checked={form.keepLoggedIn}
-                    onChange={handleChange}
-                    className="accent-blue-600"
-                  />
-                  Keep me logged in
-                </label>
-              </div>
+              {/* OTP */}
+              {otpSent && (
+                <fieldset className="border border-blue-500 rounded-md px-3 pt-1 relative">
+                  <legend className="text-xs text-blue-500 px-1">OTP</legend>
+                  <div className="flex items-center">
+                    <input
+                      type={showOtp ? "text" : "password"}
+                      name="otp"
+                      value={form.otp}
+                      onChange={handleChange}
+                      placeholder="Enter OTP"
+                      className="w-full py-2 text-sm focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOtp(!showOtp)}
+                      className="absolute right-2 text-lg text-gray-500"
+                    >
+                      {showOtp ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
+                    </button>
+                  </div>
+                  {errors.otp && <p className="text-red-500 text-xs">{errors.otp}</p>}
+                </fieldset>
+              )}
             </div>
 
-            <button
-              onClick={handleSignIn}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
-            >
-              {loading ? "Signing in..." : "Sign in"}
-            </button>
+            {/* Buttons */}
+            {!otpSent ? (
+              <button
+                onClick={sendOtp}
+                disabled={loading}
+                className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
+              >
+                {loading ? "Sending OTP..." : "Get OTP"}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={handleSignIn}
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </button>
+                <button
+                  onClick={sendOtp}
+                  disabled={resendCooldown > 0 || loading}
+                  className="w-full border border-blue-600 text-blue-600 py-2 text-sm rounded-md hover:bg-blue-50 transition"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                </button>
+              </div>
+            )}
 
+            {/* Switch to Signup */}
             <p className="text-center text-sm text-gray-600 pt-2">
               Need an account?
-              <Link to="/" className="text-blue-600 hover:underline ml-1">Create one</Link>
+              <Link to="/" className="text-blue-600 hover:underline ml-1">
+                Create one
+              </Link>
             </p>
           </div>
         </div>
@@ -175,11 +205,7 @@ const SignIn = () => {
 
       {/* Right Column */}
       <div className="hidden md:block w-3/4 p-1">
-        <img
-          src={rightColImage}
-          alt="Right Visual"
-          className="w-full h-full object-cover"
-        />
+        <img src={rightColImage} alt="Visual" className="w-full h-full object-cover" />
       </div>
     </div>
   );

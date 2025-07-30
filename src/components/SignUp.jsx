@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { Link, useNavigate } from "react-router-dom";
@@ -22,6 +22,35 @@ const SignUp = () => {
   const [showOtpField, setShowOtpField] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [otpExpireTimer, setOtpExpireTimer] = useState(0);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/check`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      if (data.loggedIn && data.user) {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      console.error("Auth check failed:", err);
+    }
+  };
+  checkAuth();
+}, [navigate]);
+
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOtpExpireTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -45,21 +74,37 @@ const SignUp = () => {
       return;
     }
 
+    if (resendCooldown > 0) {
+      alert(`Please wait ${resendCooldown}s before requesting again.`);
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/auth/signup`, {
-        name: form.name,
-        dob: form.dob,
-        email: form.email,
-      });
+      const res = await axios.post(
+        `${API_BASE}/auth/send-otp`,
+        {
+          name: form.name,
+          dob: form.dob,
+          email: form.email,
+          route:'signup'
+        },
+        { withCredentials: true }
+      );
+
+      if (res.data.exists && res.data.verified) {
+        alert("User already exists and is verified. Please sign in.");
+        navigate("/signin");
+        return;
+      }
 
       alert(res.data.message);
       setShowOtpField(true);
+      setOtpExpireTimer(300); // 5 minutes expiry timer
+      setResendCooldown(60); // 1 minute cooldown
     } catch (err) {
       console.error(err);
-      alert(
-        err.response?.data?.error || "Something went wrong. Try again later."
-      );
+      alert(err.response?.data?.error || "Something went wrong. Try again later.");
     } finally {
       setLoading(false);
     }
@@ -71,21 +116,27 @@ const SignUp = () => {
       return;
     }
 
+    if (otpExpireTimer === 0) {
+      alert("OTP has expired. Please request a new one.");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/auth/verify-otp`, {
-        email: form.email,
-        otp: form.otp,
-      });
+      const res = await axios.post(
+        `${API_BASE}/auth/signin`,
+        {
+          email: form.email,
+          otp: form.otp,
+        },
+        { withCredentials: true }
+      );
 
       alert(res.data.message);
-      localStorage.setItem("token", res.data.token);
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
-      alert(
-        err.response?.data?.error || "OTP verification failed. Try again."
-      );
+      alert(err.response?.data?.error || "OTP verification failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -94,13 +145,13 @@ const SignUp = () => {
   return (
     <div className="flex flex-col md:flex-row h-screen">
       <div className="w-full md:w-1/2 flex flex-col relative bg-white">
-        <div className="absolute top-6 left-6">
-          <img src={topLogo} alt="HD Logo" className="w-40 h-5" />
-        </div>
+        <div className="md:absolute top-6 left-6 flex justify-center md:justify-start w-full md:w-auto mt-6 md:mt-0">
+                  <img src={topLogo} alt="Logo" className="md:w-45 md:h-5 w-90 h-8" />
+                </div>
 
         <div className="flex flex-col justify-center items-center h-full px-6 md:px-16">
           <div className="w-full max-w-md space-y-6">
-            <h2 className="text-2xl font-bold text-left">Sign up</h2>
+            <h2 className="text-2xl font-bold text-left mb-0">Sign up</h2>
             <p className="text-gray-500 text-sm">Sign up to enjoy the feature of HD</p>
 
             <div className="space-y-4">
@@ -114,6 +165,7 @@ const SignUp = () => {
                   placeholder="Jonas Khanwald"
                   className="w-full py-2 text-sm focus:outline-none"
                 />
+                {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
               </fieldset>
 
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
@@ -128,6 +180,7 @@ const SignUp = () => {
                   />
                   <FaCalendarAlt className="absolute right-2 text-gray-400 text-sm" />
                 </div>
+                {errors.dob && <p className="text-red-500 text-xs">{errors.dob}</p>}
               </fieldset>
 
               <fieldset className="border border-gray-300 rounded-md px-3 pt-1">
@@ -140,6 +193,7 @@ const SignUp = () => {
                   placeholder="jonas_kahnwald@gmail.com"
                   className="w-full py-2 text-sm focus:outline-none"
                 />
+                {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
               </fieldset>
 
               {showOtpField && (
@@ -162,6 +216,10 @@ const SignUp = () => {
                       {showOtp ? <AiOutlineEyeInvisible /> : <AiOutlineEye />}
                     </button>
                   </div>
+                  {errors.otp && <p className="text-red-500 text-xs">{errors.otp}</p>}
+                  {otpExpireTimer > 0 && (
+                    <p className="text-xs text-gray-500 pt-1">OTP expires in {otpExpireTimer}s</p>
+                  )}
                 </fieldset>
               )}
             </div>
@@ -172,7 +230,7 @@ const SignUp = () => {
                 disabled={loading}
                 className="w-full bg-blue-600 text-white py-2 text-sm rounded-md hover:bg-blue-700 transition"
               >
-                {loading ? "Sending OTP..." : "Get OTP"}
+                {loading ? "Sending OTP..." : resendCooldown > 0 ? `Wait ${resendCooldown}s` : "Get OTP"}
               </button>
             ) : (
               <button
@@ -195,11 +253,7 @@ const SignUp = () => {
       </div>
 
       <div className="hidden md:block w-3/4 p-1">
-        <img
-          src={rightColImage}
-          alt="Right Image"
-          className="w-full h-full object-cover"
-        />
+        <img src={rightColImage} alt="Right Visual" className="w-full h-full object-cover" />
       </div>
     </div>
   );

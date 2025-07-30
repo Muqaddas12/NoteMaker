@@ -2,46 +2,57 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import topLogo from "../assets/dashboard-logo.png";
 
+const API_BASE = "https://notemaker-backend-v3fg.onrender.com/api";
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(null);         // ⏳ user is null initially
+  const [user, setUser] = useState(null);
   const [notes, setNotes] = useState([]);
-  const [loading, setLoading] = useState(true);   // ✅ loading state
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [noteInput, setNoteInput] = useState({ title: "", content: "" });
 
+  // ✅ Auth check using JWT from cookie
   useEffect(() => {
-    const storedUser =
-      JSON.parse(localStorage.getItem("user")) ||
-      JSON.parse(sessionStorage.getItem("user"));
+    const checkAuth = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/check`, {
+          credentials: "include",
+        });
 
-    if (!storedUser) {
-      navigate("/signin");
-    } else {
-      setUser(storedUser);
-    }
-
-    setLoading(false); // ✅ stop loading after check
+        const data = await res.json();
+        if (data.loggedIn && data.user) {
+          setUser(data.user);
+        } else {
+          navigate("/signin");
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        navigate("/signin");
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
   }, [navigate]);
 
-  const storageKey = `notes_${user?.email}`;
-
+  // ✅ Load notes from localStorage once user is set
   useEffect(() => {
-    if (user) {
-      const stored = JSON.parse(localStorage.getItem(storageKey)) || [];
-      setNotes(stored);
+    if (user?.email) {
+      const savedNotes = localStorage.getItem(`notes_${user.email}`);
+      setNotes(savedNotes ? JSON.parse(savedNotes) : []);
     }
-  }, [user, storageKey]);
+  }, [user]);
 
+  // ✅ Save notes to localStorage
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(storageKey, JSON.stringify(notes));
+    if (user?.email) {
+      localStorage.setItem(`notes_${user.email}`, JSON.stringify(notes));
     }
-  }, [notes, storageKey, user]);
+  }, [notes, user]);
 
-  const handleAddOrEdit = () => {
+  const handleSaveNote = () => {
     if (!noteInput.title.trim() || !noteInput.content.trim()) return;
 
     const updatedNotes = [...notes];
@@ -52,9 +63,13 @@ const Dashboard = () => {
     }
 
     setNotes(updatedNotes);
-    setNoteInput({ title: "", content: "" });
-    setCreating(false);
-    setEditingIndex(null);
+    resetForm();
+  };
+
+  const handleEdit = (index) => {
+    setNoteInput(notes[index]);
+    setEditingIndex(index);
+    setCreating(true);
   };
 
   const handleDelete = (index) => {
@@ -62,21 +77,25 @@ const Dashboard = () => {
     setNotes(updated);
   };
 
-  const handleEdit = (index) => {
-    setNoteInput(notes[index]);
-    setCreating(true);
-    setEditingIndex(index);
+  const resetForm = () => {
+    setNoteInput({ title: "", content: "" });
+    setEditingIndex(null);
+    setCreating(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("token");
-    navigate("/signin");
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      navigate("/signin");
+    }
   };
 
-  // ⏳ Don't render if still checking auth
   if (loading || !user) return null;
 
   return (
@@ -95,7 +114,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Welcome */}
+      {/* Welcome Box */}
       <div className="bg-white p-4 rounded-lg shadow-sm mb-6 w-full max-w-3xl">
         <h2 className="text-lg font-semibold">Welcome, {user.name}</h2>
         <p className="text-sm text-gray-600">Email: {user.email}</p>
@@ -107,8 +126,8 @@ const Dashboard = () => {
           <button
             onClick={() => {
               setCreating(true);
-              setEditingIndex(null);
               setNoteInput({ title: "", content: "" });
+              setEditingIndex(null);
             }}
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
           >
@@ -119,34 +138,26 @@ const Dashboard = () => {
             <input
               type="text"
               value={noteInput.title}
-              onChange={(e) =>
-                setNoteInput({ ...noteInput, title: e.target.value })
-              }
+              onChange={(e) => setNoteInput({ ...noteInput, title: e.target.value })}
               placeholder="Note Title"
               className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none"
             />
             <textarea
               value={noteInput.content}
-              onChange={(e) =>
-                setNoteInput({ ...noteInput, content: e.target.value })
-              }
+              onChange={(e) => setNoteInput({ ...noteInput, content: e.target.value })}
               placeholder="Note Content"
               rows="4"
               className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none"
             ></textarea>
             <div className="flex justify-end gap-3">
               <button
-                onClick={handleAddOrEdit}
+                onClick={handleSaveNote}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
               >
                 {editingIndex !== null ? "Update" : "Save"}
               </button>
               <button
-                onClick={() => {
-                  setCreating(false);
-                  setNoteInput({ title: "", content: "" });
-                  setEditingIndex(null);
-                }}
+                onClick={resetForm}
                 className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-300"
               >
                 Cancel

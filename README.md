@@ -1,99 +1,97 @@
-# Notes Dashboard Frontend
+# 📘 HD NoteMaker - Frontend
 
-This is the **frontend** of a responsive Notes Dashboard built with **React**, **Vite**, and **Tailwind CSS**. It allows users to:
-
-* Sign up / Sign in using email and OTP (UI only)
-* Create, edit, and delete notes
-* Store notes locally in the browser (localStorage)
-* Notes are stored per user (based on email, frontend only)
-
-> 🔐 This project currently handles UI only. Backend integration (authentication & database) is under development.
-
----
-
-## 📆 Tech Stack
-
-* **React + Vite** (with React Router)
-* **Tailwind CSS**
-* **localStorage** for temporary note storage
+Welcome to the frontend of the **HD NoteMaker** application. This is a responsive React-based user interface for authenticating users via OTP, allowing sign up and sign in. The app interacts with a secure Express.js backend hosted on Render.
 
 ---
 
 ## 🚀 Features
 
-* Responsive layout for both desktop and mobile
-* Sign Up / Sign In pages with OTP verification UI
-* Dashboard with:
-
-  * User welcome section
-  * Create/Edit/Delete notes
-  * Per-user note storage using localStorage
-* Auth-based route protection (basic frontend logic)
+* ⚡ OTP-based Sign In & Sign Up
+* 🎨 Responsive UI with Tailwind CSS
+* 🔐 JWT-based authentication with cookie support
+* 🔁 OTP resend with cooldown and expiry
+* 👀 Password visibility toggle (OTP input)
+* 📱 Mobile-first design with form-image split layout
 
 ---
 
-## 🧱 Folder Structure
+## 🛠️ Technologies Used
+
+* React
+* React Router
+* Axios
+* Tailwind CSS
+* React Icons
+
+---
+
+## 📁 Folder Structure
 
 ```
 src/
-├── assets/               # Images and logos
-├── components/
-│   ├── SignUp.jsx
-│   ├── SignIn.jsx
-│   ├── Dashboard.jsx
-│   └── PrivateRoute.jsx
-├── App.jsx
-├── main.jsx
-├── index.css
-└── App.css
+├── assets/              # Logo and visual images
+├── components/          # (Optional) Reusable components
+├── pages/
+│   ├── SignIn.jsx       # OTP-based sign in page
+│   └── SignUp.jsx       # OTP-based sign up page
+├── App.jsx              # Routing and base layout
+└── main.jsx             # ReactDOM entry point
 ```
 
 ---
 
-## 💪 Setup Instructions
+## 🔧 Environment Configuration
 
-1. **Clone this repo**
+Update the backend API base URL in `SignIn.jsx` and `SignUp.jsx`:
 
-```bash
-git clone https://github.com/Muqaddas12/NOTEMAKER.git
-cd notes-dashboard-frontend
+```js
+const API_BASE = "https://notemaker-backend-v3fg.onrender.com/api";
 ```
 
-2. **Install dependencies**
+---
+
+## 📦 Installation
 
 ```bash
 npm install
-```
-
-3. **Run the project** (Vite)
-
-```bash
 npm run dev
 ```
 
-Frontend runs locally at: `http://localhost:5173`
+---
+
+## 🌐 Routes
+
+* `/signin` → Sign in with email and OTP
+* `/` → Sign up with name, dob, email and OTP
+* `/dashboard` → Redirected if authenticated (via JWT cookie)
 
 ---
 
-## 🔧 Backend (Coming Soon)
+## 🔐 Auth Logic Summary
 
-* Authentication API (Signup / OTP / Session)
-* Database storage (MongoDB/PostgreSQL)
-* JWT-based secure routing
-* Multi-user support with persistence
-
----
-
-
+* OTP sent via `/auth/send-otp` on sign up/sign in
+* JWT cookie set on successful sign in via `/auth/signin`
+* Auth check via `/auth/check` endpoint using `credentials: include`
 
 ---
 
-## ✍️ Author
+## 📱 Mobile Design Note
 
-Built by **Muqaddas Malik**
+* Right-side image column is **hidden on mobile**.
+* Form layout stacks vertically with scrollable overflow.
 
 ---
 
-## 📜 License
+## ✨ Upcoming Features
 
-MIT License — free to use, modify, and distribute.
+* Forgot password flow
+* User profile page
+* Dark mode toggle
+
+---
+
+## 👨‍💻 Author
+
+* Built with ❤️ by Muqaddas Malik
+
+For backend setup or deployment, refer to the backend README.
